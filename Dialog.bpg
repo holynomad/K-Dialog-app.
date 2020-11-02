@@ -1,0 +1,26 @@
+#------------------------------------------------------------------------------
+VERSION = BWS.01
+#------------------------------------------------------------------------------
+!ifndef ROOT
+ROOT = $(MAKEDIR)\..
+!endif
+#------------------------------------------------------------------------------
+MAKE = $(ROOT)\bin\make.exe -$(MAKEFLAGS) -f$**
+DCC = $(ROOT)\bin\dcc32.exe $**
+BRCC = $(ROOT)\bin\brcc32.exe $**
+#------------------------------------------------------------------------------
+PROJECTS = KUMC_Dialog.exe KDialChatClientPkg_160726.bpl KDialChatPkg_160726.bpl
+#------------------------------------------------------------------------------
+default: $(PROJECTS)
+#------------------------------------------------------------------------------
+
+KUMC_Dialog.exe: KUMC_Dialog.dpr
+  $(DCC)
+
+KDialChatClientPkg_160726.bpl: KDialChat\KDialChatClientPkg_160726.dpk
+  $(DCC)
+
+KDialChatPkg_160726.bpl: KDialChat\KDialChatPkg_160726.dpk
+  $(DCC)
+
+

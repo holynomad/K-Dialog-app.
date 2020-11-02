@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{DA740E36-B9C4-4246-9AE0-DE12AA3C0495}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="KDialChat\KDialChatClientPkg_160726.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="KDialChat\KDialChatPkg_160726.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="KDialChatClientPkg_160726">
+        <MSBuild Projects="KDialChat\KDialChatClientPkg_160726.dproj"/>
+    </Target>
+    <Target Name="KDialChatClientPkg_160726:Clean">
+        <MSBuild Projects="KDialChat\KDialChatClientPkg_160726.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="KDialChatClientPkg_160726:Make">
+        <MSBuild Projects="KDialChat\KDialChatClientPkg_160726.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="KDialChatPkg_160726">
+        <MSBuild Projects="KDialChat\KDialChatPkg_160726.dproj"/>
+    </Target>
+    <Target Name="KDialChatPkg_160726:Clean">
+        <MSBuild Projects="KDialChat\KDialChatPkg_160726.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="KDialChatPkg_160726:Make">
+        <MSBuild Projects="KDialChat\KDialChatPkg_160726.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="KDialChatClientPkg_160726;KDialChatPkg_160726"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="KDialChatClientPkg_160726:Clean;KDialChatPkg_160726:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="KDialChatClientPkg_160726:Make;KDialChatPkg_160726:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

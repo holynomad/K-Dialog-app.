@@ -1,0 +1,1296 @@
+{===============================================================================
+   Program ID    : KDialChatClient.pas
+   Program Name  : 다이얼로그 Chat Client 관리(BPL)
+   Program Desc. : Chat 대상별 Client Socket 관리
+
+   Author        : Lee, Se-Ha
+   Date          : 2015.03.27
+===============================================================================}
+unit KDialChatClient;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, 
+  ExtDlgs, Menus, ScktComp, Grids, BaseGrid, AdvGrid, StdCtrls, ComCtrls, 
+  ExtCtrls, Variants;
+
+
+const
+   // Chat Send Columns
+   C_SD_TEXT      = 0;
+   C_SD_BUTTON    = 1;
+
+
+   // Chat 박스 Columns
+   C_CH_MYCOL     = 0;
+   C_CH_TEXT      = 1;
+   C_CH_YOURCOL   = 2;
+   C_CH_HIDDEN    = 3;
+
+type
+  TChatClient = class(TForm)
+    Bevel1: TBevel;
+    Bevel2: TBevel;
+    Image1: TImage;
+    MemoChat: TMemo;
+    ButtonConnect: TButton;
+    StatusBar: TStatusBar;
+    ButtonChangeNick: TButton;
+    EditNick: TEdit;
+    EditIp: TEdit;
+    EditPort: TEdit;
+    asg_Chat: TAdvStringGrid;
+    EditSay: TEdit;
+    ButtonSend: TButton;
+    asg_ChatSend: TAdvStringGrid;
+    ClientSocket: TClientSocket;
+    pm_Chat: TPopupMenu;
+    mi_Emoti: TMenuItem;
+    mi_FileSend: TMenuItem;
+    OpenPictureDialog1: TOpenPictureDialog;
+    od_File: TOpenDialog;
+    nm_FTP: TNMFTP;
+    procedure ClientSocketConnect(Sender: TObject;
+      Socket: TCustomWinSocket);
+    procedure ClientSocketDisconnect(Sender: TObject;
+      Socket: TCustomWinSocket);
+    procedure ClientSocketError(Sender: TObject; Socket: TCustomWinSocket;
+      ErrorEvent: TErrorEvent; var ErrorCode: Integer);
+    procedure ClientSocketRead(Sender: TObject; Socket: TCustomWinSocket);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure FormShow(Sender: TObject);
+    procedure asg_ChatButtonClick(Sender: TObject; ACol, ARow: Integer);
+    procedure asg_ChatSendButtonClick(Sender: TObject; ACol,
+      ARow: Integer);
+    procedure asg_ChatSendKeyPress(Sender: TObject; var Key: Char);
+    procedure mi_EmotiClick(Sender: TObject);
+    procedure mi_FileSendClick(Sender: TObject);
+  private
+    { Private declarations }
+    FsEditIp,
+    FsChatIp,
+    FsChatUserNm,
+    FsMyPhoto,
+    FsChatPhoto,
+    FsEditNick   : String;
+
+    Reciving     : Boolean;
+    DataSize     : integer;
+    Data         : TMemoryStream;
+    iChatRowCnt  : Integer;
+    IsEmotiSend  : Boolean;
+    IsFileSend   : Boolean;
+
+
+    //---------------------------------------------------------------------------
+    // FTP 업로드
+    //    - 소스출처 : MDN191F2.pas
+    //---------------------------------------------------------------------------
+    function  FileUpLoad(TargetFile, DelFile: String; var S_IP: String): Boolean;
+
+    //--------------------------------------------------------------------------
+    // String 내의 특정 문자 삭제
+    //    - 소스출처 : MComfunc.pas
+    //--------------------------------------------------------------------------
+    function DelChar( const Str : String ; DelC : Char ) : String;
+
+    //--------------------------------------------------------------------------
+    // [함수] TCP Port 오픈여부 Check
+    //--------------------------------------------------------------------------
+    function PortTCPIsOpen(dwPort : Word; ipAddressStr:string) : boolean;
+
+    //---------------------------------------------------------------------------
+    // [업데이트] Log 업데이트 (게시글 추천 등)
+    //    - 2013.08.20 LSH
+    //---------------------------------------------------------------------------
+    procedure UpdateLog(in_Gubun,
+                        in_BoardSeq,
+                        in_UserIp,
+                        in_LogFlag,
+                        in_Item1,
+                        in_Item2  : String;
+                        var varResult : String);
+
+   //----------------------------------------------------------------
+   // Variant Array 마지막 자리에 빈칸 하나 삽입
+   //    - 소스출처 : CComFunc.pas
+   //----------------------------------------------------------------
+   function AppendVariant(var in_var : Variant; in_str : String ) : Integer;
+
+  public
+    { Public declarations }
+  published
+    property prop_EditIp    : String read FsEditIp       write FsEditIp;
+    property prop_EditNick  : String read FsEditNick     write FsEditNick;
+    property prop_ChatIp    : String read FsChatIp       write FsChatIp;
+    property prop_ChatUserNm: String read FsChatUserNm   write FsChatUserNm;
+    property prop_ChatPhoto : String read FsChatPhoto    write FsChatPhoto;
+    property prop_MyPhoto   : String read FsMyPhoto      write FsMyPhoto;
+
+  end;
+
+var
+  ChatClient: TChatClient;
+
+implementation
+
+
+uses
+   VarCom,
+   StringLib,
+   CMsg,
+   MsgCom,
+   Uencrypt,
+   TuxMsg,
+   SysMsg,
+   TuxCom,
+   HisUtil,
+   TpSvc,   // TpCall Agent 사용관련
+   Excel97,
+   Imm,     // HIMC 사용관련추가 @ 2013.08.22 LSH
+   ShellApi,// ShellExec 사용관련 추가 @ 2013.08.22 LSH
+   Winsock, // Windows Sockets API Unit
+   ComObj,
+   Qrctrls,
+   QuickRpt,
+   IdFTPCommon;   // 델파이 XE 컨버젼관련 Id_FTP --> IndyFTP 변환 @ 2014.04.07 LSH
+
+{$R *.DFM}
+
+
+procedure TChatClient.ClientSocketConnect(Sender: TObject;
+  Socket: TCustomWinSocket);
+begin
+   Self.Caption         := '챗(Chat) :: ' + FsChatUserNm + '(' + ClientSocket.Socket.RemoteHost + ') 대화중';
+   StatusBar.SimpleText := 'Status: Connected with ' + ClientSocket.Socket.RemoteHost;
+end;
+
+procedure TChatClient.ClientSocketDisconnect(Sender: TObject;
+  Socket: TCustomWinSocket);
+begin
+   try
+      Self.Caption         := '챗(Chat) :: ' + FsChatUserNm + '(' + ClientSocket.Socket.RemoteHost + ') 대화종료';
+      StatusBar.SimpleText := 'Status: just Disconnected.';
+
+      ClientSocket.Close;
+
+   except
+      on E : Exception do
+      ShowMessage(E.ClassName+' error raised by ClientSocket.active off, with message : ' + E.Message);
+   end;
+
+end;
+
+procedure TChatClient.ClientSocketError(Sender: TObject;
+  Socket: TCustomWinSocket; ErrorEvent: TErrorEvent;
+  var ErrorCode: Integer);
+begin
+   if (ErrorCode = 10053) then
+   begin
+      // ErrorCode = 0으로 두면, '응답없음'으로 강제 종료됨.. 버그 잡아야 함..
+      ErrorCode := 1;
+      MessageBox(self.Handle,
+                 PChar('ClientSocketError(' + EditNick.Text + '): ' + Socket.RemoteHost + '(' + Socket.RemoteAddress + ') 로부터 잘못된 Connection Error 발생(소켓핸들값: ' + IntToStr(Socket.SocketHandle) + ')'),
+                 '챗(Chat) :: 잘못된 Socket 통신 오류',
+                 MB_OK + MB_ICONERROR);
+   end;
+end;
+
+procedure TChatClient.ClientSocketRead(Sender: TObject;
+  Socket: TCustomWinSocket);
+var
+   sl, sReceived, tmpOrgReceived : string;
+   sRead : string;
+   Buffer: Array[0..10000] of byte;
+   iReceived: Integer;
+   hThreadID: Cardinal;
+   FocusWnd : THandle;
+begin
+   //-----------------------------------------------------------------
+   // Window API : 창을 비활성화 --> 활성화 @ 2014.02.28 LSH
+   //     - 델마당 참조
+   //-----------------------------------------------------------------
+   ShowWindow(Self.Handle, SW_RESTORE);
+
+
+
+
+   sRead := '';
+   sRead := socket.ReceiveText;
+
+
+   Inc(iChatRowCnt);
+   asg_Chat.RowCount := iChatRowCnt;   // Grid Index out of Range 방지위해 반드시 필요 !
+
+
+   if (PosByte('just connected',     sRead) > 0)  or
+      (PosByte('just disconnected',  sRead) > 0)  or
+      (PosByte('[대화중]',           sRead) > 0)  then
+   begin
+      asg_Chat.InsertRows(iChatRowCnt, 1);
+      asg_Chat.Cells[C_CH_TEXT,      iChatRowCnt] := sRead;
+      asg_Chat.Row                                := iChatRowCnt;
+      asg_Chat.Alignments[C_CH_TEXT, iChatRowCnt] := taCenter;
+      asg_Chat.FontColors[C_CH_TEXT, iChatRowCnt] := $009589CC;
+      asg_Chat.FontStyles[C_CH_TEXT, iChatRowCnt] := [fsBold];
+      asg_Chat.AutoSizeRow(iChatRowCnt);
+
+
+
+   end
+   //-----------------------------------------------------------
+   // 이모티콘(BMP 이미지) 수신모드
+   //-----------------------------------------------------------
+   else if (PosByte('[E]',  sRead) > 0) then
+   begin
+      // 원본 수신내역 Temp 파일에 저장 (Client User 이름 추출위함)
+      tmpOrgReceived := sRead;
+
+
+      DataSize := 0;
+      sl := '';
+
+      if not Reciving then
+      begin
+         // Now we need to get the LengthByte of the data stream.
+         SetLength(sl, StrLen(PChar(sRead)) +1);           // +1 for the null terminator
+
+
+         StrLCopy(@sl[1], PChar(sRead), {PosByte('[', PChar(sRead))-1}LengthByte(sl)- 13);   // 이름태그(8) + &(1) + [E] (3) + 기존 Null (1)
+
+
+         DataSize := StrToInt(sl);
+
+
+         Data     := TMemoryStream.Create;
+         Data.Size := 0;
+
+         // DeleteByte the size information from the data.
+         DeleteByte(sRead, 1, LengthByte(sl));
+
+         Reciving:= True;
+      end;
+
+
+
+
+      // Store the data to the file, until we've received all the data.
+      try
+         Data.Write(sRead[1], LengthByte(sRead));
+
+
+         if Data.Size = DataSize then
+         begin
+
+            Data.Position:= 0;
+
+
+            try
+               // 1줄 추가
+               asg_Chat.InsertRows(iChatRowCnt, 1);
+
+            except
+               on e : Exception do
+               showmessage('Client Read ERROR : ' +  e.Message);
+            end;
+
+
+
+            try
+               // 수신한 Data-Stream을 Grid에 표기
+               asg_Chat.CreatePicture(C_CH_TEXT, iChatRowCnt, True, ShrinkWithAspectRatio, 0, haRight, vaTop).Bitmap.LoadFromStream(Data);
+
+            except
+               asg_Chat.Cells[C_CH_TEXT, iChatRowCnt] := '[이미지 수신오류]';
+            end;
+
+            // Data 송신자 표기
+            //asg_Chat.Cells[C_CH_YOURCOL,   iChatRowCnt] := CopyByte(tmpOrgReceived, PosByte('&', tmpOrgReceived) + 1, 8);
+
+            // 이모티콘 수신시, 전송자 프로필 이미지(타이틀) 수신 추가 @ 2015.03.31 LSH
+            if FileExists(CopyByte(tmpOrgReceived, PosByte('&', tmpOrgReceived) + 2, LengthByte(tmpOrgReceived) - PosByte('&', tmpOrgReceived) - 2)) then
+            begin
+               // 대화상대 Image 파일을 Grid에 표기
+               asg_Chat.CreatePicture(C_CH_YOURCOL,
+                                      iChatRowCnt,
+                                      False,
+                                      ShrinkWithAspectRatio,
+                                      0,
+                                      haLeft,
+                                      vaTop).LoadFromFile(CopyByte(tmpOrgReceived, PosByte('&', tmpOrgReceived) + 2, LengthByte(tmpOrgReceived) - PosByte('&', tmpOrgReceived) - 2));
+
+               asg_Chat.RowHeights[iChatRowCnt] := 40;
+
+            end
+            else
+               asg_Chat.Cells[C_CH_YOURCOL, iChatRowCnt]      := '[' + FsChatUserNm + ']';
+
+
+
+            // Scroll 조절
+            asg_Chat.Row := iChatRowCnt;
+
+            // 송신자 컬럼 Align
+            asg_Chat.Alignments[C_CH_YOURCOL, iChatRowCnt] := taLeftJustify;
+
+            // 해당 Row Auto-Sizing
+            asg_Chat.AutoSizeRow(iChatRowCnt);
+
+            // 메모리 해제
+            Data.Free;
+
+
+            Reciving:= False;
+
+         end;
+
+      except
+         on e : Exception do
+         begin
+            showmessage('Client Read Data.Write ERROR : ' + e.Message);
+
+            Data.Free;
+         end;
+      end;
+
+   end
+   //-----------------------------------------------------------
+   // 파일 수신모드
+   //-----------------------------------------------------------
+   else if (PosByte('[A]',  sRead) > 0) then
+   begin
+
+      asg_Chat.InsertRows(iChatRowCnt, 1);
+
+
+      asg_Chat.AddButton(C_CH_MYCOL,iChatRowCnt, asg_Chat.ColWidths[C_CH_MYCOL],  20, '다운', haBeforeText, vaCenter);
+
+      asg_Chat.Cells[C_CH_TEXT,     iChatRowCnt] := CopyByte(sRead, 1, PosByte('$', sRead) - 1);  //CopyByte(sReceived, PosByte('$', sReceived) + 1, PosByte('[', sReceived) - PosByte('$', sReceived) -1); //
+
+      //asg_Chat.Cells[C_CH_YOURCOL,  iChatRowCnt] := CopyByte(sRead, PosByte('&', sRead) + 1, 8);
+
+      // 파일 수신시, 전송자 프로필 이미지(타이틀) 수신 추가 @ 2015.03.31 LSH
+      if FileExists(CopyByte(sRead, PosByte('&', sRead) + 2, LengthByte(sRead) - PosByte('&', sRead) - 2)) then
+      begin
+         // 대화상대 Image 파일을 Grid에 표기
+         asg_Chat.CreatePicture(C_CH_YOURCOL,
+                                iChatRowCnt,
+                                False,
+                                ShrinkWithAspectRatio,
+                                0,
+                                haLeft,
+                                vaTop).LoadFromFile(CopyByte(sRead, PosByte('&', sRead) + 2, LengthByte(sRead) - PosByte('&', sRead) - 2));
+
+         asg_Chat.RowHeights[iChatRowCnt] := 40;
+
+      end
+      else
+         asg_Chat.Cells[C_CH_YOURCOL, iChatRowCnt]      := '[' + FsChatUserNm + ']';
+
+      asg_Chat.Cells[C_CH_HIDDEN,   iChatRowCnt] := CopyByte(sRead, PosByte('$', sRead) + 1, PosByte('[', sRead) - PosByte('$', sRead) -1);
+
+      asg_Chat.Row := iChatRowCnt;
+
+      asg_Chat.Alignments[C_CH_YOURCOL, iChatRowCnt] := taLeftJustify;
+
+      if LengthByte(asg_Chat.Cells[C_CH_TEXT,     iChatRowCnt]) < 36 then
+         asg_Chat.Alignments[C_CH_TEXT, iChatRowCnt] := taRightJustify
+      else
+         asg_Chat.Alignments[C_CH_TEXT, iChatRowCnt] := taLeftJustify;
+
+      //asg_Chat.AutoSizeRow(iChatRowCnt);
+
+
+   end
+   //-----------------------------------------------------------
+   // 일반 Text 수신모드
+   //-----------------------------------------------------------
+   else
+   begin
+      asg_Chat.InsertRows(iChatRowCnt, 1);
+
+      //asg_Chat.MergeCells(C_CH_MYCOL, iChatRowCnt, 2, 1);
+      //asg_Chat.Cells[C_CH_YOURCOL,  iChatRowCnt] := CopyByte(sRead, PosByte('&', sRead) + 1, 10);
+
+      // test
+      //showmessage('Chat Client에서 수신시 : ' + CopyByte(sRead, PosByte('&', sRead) + 2, LengthByte(sRead) - PosByte('&', sRead) - 2));
+
+      if FileExists(CopyByte(sRead, PosByte('&', sRead) + 2, LengthByte(sRead) - PosByte('&', sRead) - 2)) then
+      begin
+         // 대화상대 Image 파일을 Grid에 표기
+         asg_Chat.CreatePicture(C_CH_YOURCOL,
+                                iChatRowCnt,
+                                False,
+                                ShrinkWithAspectRatio,
+                                0,
+                                haLeft,
+                                vaTop).LoadFromFile(CopyByte(sRead, PosByte('&', sRead) + 2, LengthByte(sRead) - PosByte('&', sRead) - 2));
+
+         asg_Chat.RowHeights[iChatRowCnt] := 40;
+
+      end
+      else
+         asg_Chat.Cells[C_CH_YOURCOL, iChatRowCnt]      := '[' + FsChatUserNm + ']';
+
+
+
+      asg_Chat.AutoSizeRow(iChatRowCnt);
+
+      asg_Chat.Cells[C_CH_TEXT,     iChatRowCnt] := CopyByte(sRead, 1, PosByte('&', sRead)-1);
+      asg_Chat.Row := iChatRowCnt;
+
+      asg_Chat.Alignments[C_CH_YOURCOL, iChatRowCnt] := taLeftJustify;
+
+      if LengthByte(asg_Chat.Cells[C_CH_TEXT,     iChatRowCnt]) < 36 then
+         asg_Chat.Alignments[C_CH_TEXT, iChatRowCnt] := taRightJustify
+      else
+         asg_Chat.Alignments[C_CH_TEXT, iChatRowCnt] := taLeftJustify;
+
+
+   end;
+
+end;
+
+
+
+//------------------------------------------------------------------------------
+// [FTP] Chat-File Upload function Event Handler
+//
+// Date   : 2013.09.04
+// Author : Lee, Se-Ha
+//------------------------------------------------------------------------------
+function TChatClient.FileUpLoad(TargetFile, DelFile: String; var S_IP: String):Boolean;
+var
+   sServerIp, sFtpUserId, sFtpPasswd, sFtpHostName, sFtpDir: String;
+begin
+
+   Result := True;
+
+
+   // 파일 업로드를 위한 정보 조회
+   if not GetBinUploadInfo(sServerIp, sFtpUserID, sFtpPasswd, sFtpHostName, sFtpDir) then
+   begin
+      ShowMessage('파일 저장을 위한 사용자 정보 조회중, 오류가 발생했습니다.');
+      Result := False;
+      exit;
+   end;
+
+   try
+      if nm_Ftp.Connected then
+         nm_Ftp.Disconnect;
+   except
+      Showmessage('초기설정 에러');
+      Result := False;
+      Exit;
+   end;
+
+
+   nm_Ftp.Host     := sServerIp;
+   nm_Ftp.UserID   := sFtpUserId;
+   nm_Ftp.Password := sFtpPasswd;
+
+
+   try
+      nm_Ftp.Connect;
+
+   except
+      Showmessage('FTP 연결에러');
+      Result := False;
+      Exit;
+   end;
+
+
+   try
+      nm_Ftp.ChangeDir('/ftpspool/CHATFILE');
+
+   except
+      Showmessage('ChangeDir 에러');
+      Result := False;
+      Exit;
+   end;
+
+
+   try
+      nm_Ftp.mode(MODE_BYTE);
+
+   except
+      Showmessage('Mode 변경 에러');
+      Result := False;
+      Exit;
+   end;
+
+   //  -- 첨부내용 수정기능 미지원.. 주석처리 @ 2013.08.28 LSH
+   {
+   if DelFile <> '' then
+   begin
+      if Trim(fed_Attached.Text) <> DelFile then
+      begin
+         try
+            nm_Ftp.Delete(DelFile);
+
+         except
+            Showmessage('파일삭제 에러');
+            Result := False;
+            Exit;
+         end;
+      end;
+   end;
+  }
+
+
+   if Trim(asg_ChatSend.Cells[C_SD_TEXT, 0]) <> '' then
+   begin
+      try
+         nm_Ftp.Upload(Trim(asg_ChatSend.Cells[C_SD_TEXT, 0]), TargetFile);
+
+      except
+         Showmessage('파일전송에러');
+         Result := False;
+         Exit;
+      end;
+
+      try
+         nm_Ftp.DoCommand('SITE CHMOD 644 ' + TargetFile)
+
+      except
+         Showmessage('SITE CHMOD Error');
+         Result := False;
+         Exit;
+      end;
+   end;
+
+   try
+      nm_Ftp.Disconnect;
+
+   except
+      Showmessage('객체해제 에러');
+      Result := False;
+      Exit;
+   end;
+
+
+   S_IP := sServerIp;
+
+
+end;
+
+
+
+procedure TChatClient.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+   ChatClient := nil;
+   Action := caFree;
+end;
+
+
+
+procedure TChatClient.FormShow(Sender: TObject);
+type
+   TProcedureType  = Procedure(Sender: TObject) of Object;
+   TProcedureType2 = Procedure(Sender: TObject; in_Gubun : String) of Object;
+var
+   varResult   : String;
+   Procedure1  : TProcedureType;
+   Procedure2  : TProcedureType2;
+   PProcedure1 : PMethod;
+   PProcedure2 : PMethod;
+begin
+   //---------------------------------------------------------
+   // [Chat Box] Frame Set.
+   //---------------------------------------------------------
+   with asg_Chat do
+   begin
+      ColWidths[C_CH_MYCOL]   := 40;
+      ColWidths[C_CH_TEXT]    := 285;
+      ColWidths[C_CH_YOURCOL] := 40;
+//      ColWidths[C_CH_HIDDEN]  := 0;
+   end;
+
+   //---------------------------------------------------------
+   // [Chat 전송] Frame Set.
+   //---------------------------------------------------------
+   with asg_ChatSend do
+   begin
+      ColWidths[C_SD_TEXT]   := 318;
+//      ColWidths[C_SD_BUTTON  := 227;
+
+      AddButton(C_SD_BUTTON, 0, ColWidths[C_SD_BUTTON]-5, 20, '전송', haBeforeText, vaCenter);     // 전송 Button
+   end;
+
+
+
+   // 파일 및 이모티콘 전송모드 Off
+   IsEmotiSend := False;
+   IsFileSend  := False;
+
+
+   //---------------------------------------------------------
+   // Main 화면 Chatting - Log 업데이트 진행
+   //---------------------------------------------------------
+   if FindForm('MAINDLG') <> nil then
+   begin
+      PProcedure1 := @TMethod(Procedure1);
+
+      (GetComp('MAINDLG', 'pn_ChatUserIp') as TPanel).Caption := FsChatIp;
+
+      if FindFormMethod('MAINDLG', 'SetUpdChatLog', PProcedure1) = True then
+      begin
+         Procedure1(Sender);
+      end;
+   end;
+
+
+
+   try
+      Screen.Cursor := crHourGlass;
+
+
+      // 접속대상 IP와 닉네임 설정
+      EditIp.Text   := FsEditIp;
+      EditNick.Text := FsEditNick;
+
+      // 접속 서버의 IP 및 Port 정보
+      ClientSocket.Host    := FsChatIp;
+      ClientSocket.Port    := StrToInt(DelChar(CopyByte(FsChatIp, LengthByte(FsChatIp)-3, 4), '.'));
+
+
+      //---------------------------------------------------------
+      // 접속하려는 Server Port 사용가능 여부 Check
+      //---------------------------------------------------------
+      if PortTCPIsOpen(ClientSocket.Port, ClientSocket.Host) then
+      begin
+         ClientSocket.Active  := True;
+      end
+      else
+      begin
+
+         MessageBox(self.Handle,
+                    PChar('접속하려는 대상 Port가 닫혀있습니다.' + #13#10 + #13#10 + '접속 대상자의 프로그램이 실행중인지 확인이 필요합니다.'),
+                    '챗(Chat) 박스 :: 접속 서버 Port 닫힘',
+                    MB_OK + MB_ICONWARNING);
+
+
+         ClientSocket.Active  := False;
+
+         //---------------------------------------------------------
+         // Main 화면 미접속 User Log-out 업데이트 진행
+         //---------------------------------------------------------
+         if FindForm('MAINDLG') <> nil then
+         begin
+            PProcedure1 := @TMethod(Procedure1);
+
+            (GetComp('MAINDLG', 'pn_ChatUserIp') as TPanel).Caption := FsChatIp;
+
+            if FindFormMethod('MAINDLG', 'SetUpdLogOut', PProcedure1) = True then
+            begin
+               Procedure1(Sender);
+            end;
+         end;
+
+
+         //---------------------------------------------------------
+         // 다이얼 Chat 리스트 Refresh
+         //---------------------------------------------------------
+         if FindForm('KDIALCHAT') <> nil then
+         begin
+            PProcedure2 := @TMethod(Procedure2);
+
+            if FindFormMethod('KDIALCHAT', 'SelChatList', PProcedure2) = True then
+            begin
+               Procedure2(Sender, 'NETWORK');
+            end;
+         end;
+
+         // Chat-Client 폼 종료
+         Close;
+
+      end;
+
+
+   finally
+      Screen.Cursor := crDefault;
+   end;
+end;
+
+
+//------------------------------------------------------------------------------
+// [함수] TCP Port 오픈여부 Check
+//    - 2013.08.30 LSH
+//    - 소스출처 : Google
+//------------------------------------------------------------------------------
+function TChatClient.PortTCPIsOpen(dwPort : Word; ipAddressStr:string) : boolean;
+var
+   client : sockaddr_in;                                                // sockaddr_in is used by Windows Sockets to specify a local or remote endpoint address
+   sock   : Integer;
+begin
+   client.sin_family       := AF_INET;
+   client.sin_port         := htons(dwPort);                            // htons converts a u_short from host to TCP/IP network byte order.
+   client.sin_addr.s_addr  := inet_addr(PChar(ipAddressStr));           // the inet_addr function converts a string containing an IPv4 dotted-decimal address into a proper address for the IN_ADDR structure.
+   sock                    := socket(AF_INET, SOCK_STREAM, 0);          // The socket function creates a socket
+   Result                  := connect(sock,client,SizeOf(client)) = 0;  // establishes a connection to a specified socket.
+end;
+
+
+
+// String 내의 특정 문자 삭제
+function TChatClient.DelChar( const Str : String ; DelC : Char ) : String;
+var
+  I, L : Integer;
+begin
+  L := LengthByte(Str);
+  result := '';
+
+    for I := 1 to L  do begin
+      if DelC <> '' then
+      begin
+        if Str[I] <> DelC then
+          result := result + Str[I];
+      end
+      else
+      begin
+        if Str[I] in ['0'..'9'] then
+          result := result + Str[I];
+      end;
+    end;
+end;
+
+
+
+procedure TChatClient.asg_ChatButtonClick(Sender: TObject; ACol,
+  ARow: Integer);
+var
+   sLocalFile, sRemoteFile : String;
+   sServerIp,  sFtpUserID, sFtpPasswd, sFtpHostName, sFtpDir : String;
+begin
+   //---------------------------------------------
+   // 첨부파일 Click시 Event 처리
+   //---------------------------------------------
+   with asg_Chat do
+   begin
+      if ((ACol = C_CH_MYCOL) and (Cells[C_CH_HIDDEN, ARow] <> '')) then
+      begin
+         // 파일 업/다운로드를 위한 정보 조회
+         if not GetBinUploadInfo(sServerIp, sFtpUserID, sFtpPasswd, sFtpHostName, sFtpDir) then
+         begin
+            MessageDlg('파일 저장을 위한 사용자 정보 조회중, 오류가 발생했습니다.', Dialogs.mtError, [Dialogs.mbOK], 0);
+            exit;
+         end;
+
+
+
+         //실제 서버에 저장되어 있는 파일명 지정
+         if PosByte('/ftpspool/CHATFILE/',Cells[C_CH_HIDDEN, ARow]) > 0 then
+            sRemoteFile := Cells[C_CH_HIDDEN, ARow]
+         else
+            sRemoteFile := '/ftpspool/CHATFILE/' + Cells[C_CH_HIDDEN, ARow];
+
+         // C:\DEV --> G_HOMEDIR 전환 @ 2016.07.26 LSH
+         sLocalFile  := G_HOMEDIR + 'TEMP\SPOOL\' + Cells[C_CH_TEXT, ARow]; //lb_Filename.Caption;
+
+
+
+         if (GetBINFTP(sServerIp, sFtpUserID, sFtpPasswd, sRemoteFile, sLocalFile, False)) then
+         begin
+            //	 ShowMessage('정상적으로 저장되었습니다.');
+         end;
+
+
+
+         Screen.Cursor := crDefault;
+
+
+
+         try
+
+            if (PosByte('.exe', sLocalFile) > 0) or
+               (PosByte('.zip', sLocalFile) > 0) or
+               (PosByte('.rar', sLocalFile) > 0) then
+            begin
+               MessageBox(self.Handle,
+                          PChar('첨부파일(' + sLocalFile + ') 다운로드가 완료되었습니다.' + #13#10 + #13#10 +
+                                '※ 임시 다운로드 폴더 --> C:\KUMC(_DEV)\TEMP\SPOOL\'),
+                          '첨부파일 다운로드 실행 완료',
+                          MB_OK + MB_ICONINFORMATION);
+
+            end
+            else
+            begin
+               ShellExecute(HANDLE, 'open',
+                            PCHAR(Cells[C_CH_TEXT, ARow]),
+                            PCHAR(''),
+                            // C:\DEV --> G_HOMEDIR 전환 @ 2016.07.26 LSH
+                            PCHAR(G_HOMEDIR + 'TEMP\SPOOL\'),
+                            SW_SHOWNORMAL);
+            end;
+
+
+         except
+            MessageBox(self.Handle,
+                       PChar('해당 프로그램 다운로드중 오류가 발생하였습니다.' + #13#10 + #13#10 +
+                             '프로그램 종료 후 다시 실행해 주시기 바랍니다.'),
+                       '첨부파일 다운로드 중 오류',
+                       MB_OK + MB_ICONERROR);
+
+            Exit;
+         end;
+      end;
+   end;
+end;
+
+procedure TChatClient.asg_ChatSendButtonClick(Sender: TObject; ACol,
+  ARow: Integer);
+var
+   ms : TMemoryStream;
+   sFileName, sHideFile, sServerIp : String;
+begin
+   if (ACol = C_SD_BUTTON) then
+   begin
+
+      Inc(iChatRowCnt);
+      asg_Chat.RowCount := iChatRowCnt;   // Grid Index out of Range 방지위해 반드시 필요 !
+
+
+      //----------------------------------------------------------
+      // 이모티콘(Bitmap) 전송모드
+      //----------------------------------------------------------
+      if (IsEmotiSend) then
+      begin
+         // test
+         //showmessage('이모티콘 전송모드');
+
+         ms := TMemoryStream.Create;
+
+         try
+            // 현재 불러온 이미지를 Memory-Stream으로 저장
+            asg_ChatSend.GetPicture(C_SD_TEXT, 0).Bitmap.SaveToStream(ms);
+
+
+            if ms.Size > 3000 then
+            begin
+               //
+               MessageBox(self.Handle,
+                          PChar('이모티콘용 Bitmap 이미지는 3KB 이하만 가능합니다.'),
+                          '챗(Chat) :: 이모티콘(Bitmap) 전송 Size 제한',
+                          MB_OK + MB_ICONERROR);
+
+               // 메모리 해제
+               ms.Free;
+
+               // 입력창 이미지 제거
+               asg_ChatSend.RemovePicture(C_SD_TEXT, 0);
+
+               // 상태 Chagne
+               IsEmotiSend := False;
+
+               Exit;
+            end;
+
+
+            ms.Position := 0;
+
+
+            // Data Stream 사이즈 정보 및 구분 Flag + 전송자 이름 @ 2015.03.31 LSH
+            if FileExists(FsMyPhoto) then
+               ClientSocket.Socket.SendText(IntToStr(ms.Size) + #0 + '[E]' + '&[' + FsMyPhoto + ']' + '%[' + FsChatPhoto + ']' + #0)
+            else
+               ClientSocket.Socket.SendText(IntToStr(ms.Size) + #0 + '[E]' + '&[' + EditNick.Text + ']' + '%[' + FsChatPhoto + ']' + #0);
+
+            // 서버로 Data-Stream 전송
+            ClientSocket.Socket.SendStream(ms);
+
+
+
+            try
+               // 1줄 추가
+               asg_Chat.InsertRows(iChatRowCnt, 1);
+
+            except
+               on e : Exception do
+               showmessage(e.Message);
+            end;
+
+
+
+            try
+               // 전송창에 불러온 이미지를 표기
+               asg_Chat.CreatePicture(C_CH_TEXT, iChatRowCnt, True, ShrinkWithAspectRatio, 0, haleft, vaTop).Bitmap.LoadFromFile(OpenPictureDialog1.FileName);
+
+            except
+               asg_Chat.Cells[C_CH_TEXT, iChatRowCnt] := '[이미지 전송실패]';
+            end;
+
+            // 전송자 표기 (이미지 있으면 이미지 표기로 전환) @ 2015.03.30 LSH
+            if FileExists(FsMyPhoto) then
+            begin
+               // 나의 Image 파일을 Grid에 표기
+               asg_Chat.CreatePicture(C_CH_MYCOL,
+                                      iChatRowCnt,
+                                      False,
+                                      ShrinkWithAspectRatio,
+                                      0,
+                                      haLeft,
+                                      vaTop).LoadFromFile(FsMyPhoto);
+
+               asg_Chat.RowHeights[iChatRowCnt] := 40;
+
+            end
+            else
+               asg_Chat.Cells[C_CH_MYCOL, iChatRowCnt]      := '[' + EditNick.Text + '] ';
+
+
+            asg_Chat.AutoSizeRow(iChatRowCnt);
+
+            // Scroll 조절
+            asg_Chat.Row   := iChatRowCnt;
+
+            // 입력창 이미지 제거
+            asg_ChatSend.RemovePicture(C_SD_TEXT, 0);
+
+            // 상태 Change
+            IsEmotiSend := False;
+
+         except
+            ms.Free;
+         end;
+
+
+      end
+      //----------------------------------------------------------
+      // File 전송모드
+      //----------------------------------------------------------
+      else if (IsFileSend) then
+      begin
+         // test
+         //showmessage('파일 전송모드');
+
+         sFileName   := '';
+         sHideFile   := '';
+         sServerIp   := '';
+
+
+
+         // 첨부파일 Upload
+         if (Trim(asg_ChatSend.Cells[C_SD_TEXT, 0]) <> '') then
+         begin
+
+            sFileName := ExtractFileName(Trim(asg_ChatSend.Cells[C_SD_TEXT, 0]));
+            sHideFile := 'CHATAPPEND' + DelChar(CopyByte(FsChatIp, LengthByte(FsChatIp)-3, 4), '.') +
+                          FormatDateTime('YYYYMMDDHHNNSS', Now) + '.KDIALFILE';
+
+
+            if Not FileUpLoad(sHideFile, asg_ChatSend.Cells[C_SD_TEXT, 0], sServerIp) then
+            begin
+               Showmessage('첨부파일 UpLoad 중 에러가 발생했습니다.' + #13#10 + #13#10 +
+                           '다시한번 시도해 주시기 바랍니다.');
+               Exit;
+            end;
+         end;
+
+
+
+         if FileExists(FsMyPhoto) then
+            ClientSocket.Socket.SendText(sFileName + '$' + sHideFile + '[A]' + '&[' + FsMyPhoto + ']' + '%[' + FsChatPhoto + ']')
+         else
+            ClientSocket.Socket.SendText(sFileName + '$' + sHideFile + '[A]' + '&[' + EditNick.Text + ']' + '%[' + FsChatPhoto + ']');
+
+
+         asg_Chat.InsertRows(iChatRowCnt, 1);
+
+         //asg_Chat.Cells[C_CH_MYCOL,    iChatRowCnt]      := '[' + EditNick.Text + ']';
+
+         // 전송자 표기 (이미지 있으면 이미지 표기로 전환) @ 2015.03.30 LSH
+         if FileExists(FsMyPhoto) then
+         begin
+            // 나의 Image 파일을 Grid에 표기
+            asg_Chat.CreatePicture(C_CH_MYCOL,
+                                   iChatRowCnt,
+                                   False,
+                                   ShrinkWithAspectRatio,
+                                   0,
+                                   haLeft,
+                                   vaTop).LoadFromFile(FsMyPhoto);
+
+            asg_Chat.RowHeights[iChatRowCnt] := 40;
+
+         end
+         else
+            asg_Chat.Cells[C_CH_MYCOL,    iChatRowCnt]      := '[' + EditNick.Text + ']';
+
+
+         asg_Chat.AutoSizeRow(iChatRowCnt);
+
+         asg_Chat.Cells[C_CH_TEXT,     iChatRowCnt]      := sFileName;
+         asg_Chat.Cells[C_CH_HIDDEN,   iChatRowCnt]      := sHideFile;
+         asg_Chat.Cells[C_CH_YOURCOL,  iChatRowCnt]      := '<전송됨>';
+         //asg_Chat.AddButton(C_CH_YOURCOL,  iChatRowCnt, asg_Chat.ColWidths[C_CH_YOURCOL]-20,  20, '다운', haBeforeText, vaCenter);
+
+         asg_Chat.Row                                 := iChatRowCnt;
+         asg_Chat.Alignments[C_CH_TEXT, iChatRowCnt]  := taLeftJustify;
+
+
+
+
+         asg_ChatSend.Cells[C_SD_TEXT, 0] := '';
+
+
+         IsFileSend := False;
+
+      end
+      //----------------------------------------------------------
+      // 일반 Text 전송모드
+      //----------------------------------------------------------
+      else
+      begin
+         // test
+         //showmessage('상대 : ' + FsChatPhoto + ' , 나 : ' + FsMyPhoto);
+
+
+         if FileExists(FsMyPhoto) then
+            ClientSocket.Socket.SendText(asg_ChatSend.Cells[C_SD_TEXT, 0] + '&[' + FsMyPhoto + ']' + '%[' + FsChatPhoto + ']')
+         else
+            ClientSocket.Socket.SendText(asg_ChatSend.Cells[C_SD_TEXT, 0] + '&[' + EditNick.Text + ']' + '%[' + FsChatPhoto + ']');
+
+
+
+         asg_Chat.InsertRows(iChatRowCnt, 1);
+
+         //asg_Chat.Cells[C_CH_MYCOL, iChatRowCnt]      := '[' + EditNick.Text + ']';
+
+         // 전송자 표기 (이미지 있으면 이미지 표기로 전환) @ 2015.03.30 LSH
+         if FileExists(FsMyPhoto) then
+         begin
+
+            // 나의 Image 파일을 Grid에 표기
+            asg_Chat.CreatePicture(C_CH_MYCOL,
+                                   iChatRowCnt,
+                                   False,
+                                   ShrinkWithAspectRatio,
+                                   0,
+                                   haLeft,
+                                   vaTop).LoadFromFile(FsMyPhoto);
+
+            asg_Chat.RowHeights[iChatRowCnt] := 40;
+
+         end
+         else
+            asg_Chat.Cells[C_CH_MYCOL, iChatRowCnt]      := '[' + EditNick.Text + ']';
+
+
+         asg_Chat.AutoSizeRow(iChatRowCnt);
+
+         asg_Chat.Cells[C_CH_TEXT,  iChatRowCnt]      := asg_ChatSend.Cells[C_SD_TEXT, 0];
+
+         asg_Chat.Row                                 := iChatRowCnt;
+         asg_Chat.Alignments[C_CH_TEXT, iChatRowCnt]  := taLeftJustify;
+
+
+         asg_ChatSend.Cells[C_SD_TEXT, 0] := '';
+      end;
+
+
+
+   {
+      SendToAllClients(asg_ChatSend.Cells[C_SD_TEXT, 0] + '&[' + FsUserNm + ']');
+
+
+      asg_Chat.InsertRows(iChatRowCnt, 1);
+      asg_Chat.Cells[C_CH_MYCOL, iChatRowCnt] := '[' + FsUserNm + '] ';
+      asg_Chat.Cells[C_CH_TEXT,  iChatRowCnt] := asg_ChatSend.Cells[C_SD_TEXT, 0];
+      asg_Chat.Row := iChatRowCnt;
+      asg_Chat.Alignments[C_CH_TEXT, iChatRowCnt] := taLeftJustify;
+      asg_Chat.AutoSizeRow(iChatRowCnt);
+
+   }
+
+
+   end;
+end;
+
+procedure TChatClient.asg_ChatSendKeyPress(Sender: TObject; var Key: Char);
+begin
+   if (Key = #13) and (asg_ChatSend.Cells[C_SD_TEXT, 0] <> '') then
+      asg_ChatSendButtonClick(Sender, C_SD_BUTTON, 0);
+end;
+
+procedure TChatClient.mi_EmotiClick(Sender: TObject);
+begin
+   if OpenPictureDialog1.Execute then
+   begin
+      with asg_ChatSend do
+      begin
+         CreatePicture(C_SD_TEXT, 0, True, StretchWithAspectRatio {ShrinkWithAspectRatio}, 0, haLeft, vaTop).LoadFromFile(OpenPictureDialog1.FileName);
+      end;
+   end;
+
+   if asg_ChatSend.GetPicture(C_SD_TEXT, 0) <> nil then
+   begin
+      // 이모티콘 전송모드 True
+      IsEmotiSend := True;
+
+      // 자동 전송
+      asg_ChatSendButtonClick(Sender, C_SD_BUTTON, 0);
+   end;
+end;
+
+procedure TChatClient.mi_FileSendClick(Sender: TObject);
+begin
+   if od_File.Execute then
+      asg_ChatSend.Cells[C_SD_TEXT, 0] := ExtractFileName(od_File.FileName);
+
+   if asg_ChatSend.Cells[C_SD_TEXT, 0] <> '' then
+   begin
+      // 파일 전송모드 True
+      IsFileSend := True;
+
+      // 자동 전송
+      asg_ChatSendButtonClick(Sender, C_SD_BUTTON, 0);
+   end;
+end;
+
+
+//------------------------------------------------------------------------------
+// [Update] 게시판 Log 관리
+//
+// Author : Lee, Se-Ha
+// Date   : 2013.08.20
+//------------------------------------------------------------------------------
+procedure TChatClient.UpdateLog(in_Gubun,
+                                in_BoardSeq,
+                                in_UserIp,
+                                in_LogFlag,
+                                in_Item1,
+                                in_Item2  : String;
+                                var varResult : String);
+var
+   TpUpdLog : TTpSvc;
+   vType1   ,
+   vBoardNm ,
+   vBoardSeq,
+   vUserIp  ,
+   vLogFlag ,
+   vItem1   ,
+   vItem2   ,
+   vEditIp  : Variant;
+begin
+   varResult := 'N';
+
+
+   //------------------------------------------------------------------
+   // 2-1. Append Variables
+   //------------------------------------------------------------------
+   AppendVariant(vType1   ,  '5');
+   AppendVariant(vBoardNm ,  in_Gubun);
+   AppendVariant(vBoardSeq,  in_BoardSeq);
+   AppendVariant(vUserIp  ,  in_UserIp);
+   AppendVariant(vLogFlag ,  in_LogFlag);
+   AppendVariant(vItem1   ,  in_Item1);
+   AppendVariant(vItem2   ,  in_Item2);
+   AppendVariant(vEditIp  ,  FsEditIp);
+
+
+   //-------------------------------------------------------------------
+   // 3. Insert by TpSvc
+   //-------------------------------------------------------------------
+   TpUpdLog := TTpSvc.Create;
+   TpUpdLog.Init(Self);
+
+
+
+   Screen.Cursor := crHourGlass;
+
+
+
+
+
+
+   try
+      if TpUpdLog.PutSvc('MD_KUMCM_M1',
+                          [
+                            'S_TYPE1'   , vType1
+                         ,  'S_STRING35', vBoardNm
+                         ,  'S_STRING25', vBoardSeq
+                         ,  'S_STRING7' , vUserIp
+                         ,  'S_STRING36', vLogFlag
+                         ,  'S_STRING37', vItem1
+                         ,  'S_STRING38', vItem2
+                         ,  'S_STRING8' , vEditIp
+                         ] ) then
+      begin
+
+
+         {
+         if (in_LogFlag = 'L') then
+            MessageBox(self.Handle,
+                       PChar('선택한 게시글이 정상적으로 [추천] 되었습니다.'),
+                       '[KUMC 다이얼로그] 커뮤니티 업데이트 알림 ',
+                       MB_OK + MB_ICONINFORMATION);
+         }
+         varResult := 'Y';
+      end
+      else
+      begin
+
+         // SVC 단에서 GetTxMsg 처리중. 별도 처리 필요 없음.
+         varResult := 'N';
+
+      end;
+
+
+   finally
+      FreeAndNil(TpUpdLog);
+      Screen.Cursor  := crDefault;
+   end;
+
+end;
+
+
+
+//------------------------------------------------------------------------------
+// [함수] Variant 속성 생성 함수
+//       - 소스출처 : CComFunc.pas
+//
+// Author : Lee, Se-Ha
+// Date   : 2013.08.08
+//------------------------------------------------------------------------------
+function TChatClient.AppendVariant(var in_var : Variant; in_str : String ) : Integer;
+var
+   cnt     : Integer;
+   tmp_str : String;
+begin
+   if ( VarIsArray(in_var) ) then
+   begin
+      cnt := VarArrayHighBound(in_var,1);
+
+      VarArrayRedim(in_var,cnt + 1 );
+
+      in_var[cnt+1] := in_str;
+      result := cnt+1;
+   end
+   else
+   begin
+      if ( VarIsEmpty(in_var) ) or
+         ( VarIsNull(in_var) ) then
+      begin
+         in_var    := VarArrayCreate([0,0],varVariant);
+         in_var[0] := in_str;
+         result    := 0;
+      end
+      else
+      begin
+         tmp_str   := VarToStr(in_var);
+         in_var    := VarArrayCreate([0,1],varVariant);
+         in_var[0] := tmp_str;
+         in_var[1] := in_str;
+         result    := 1;
+      end;
+   end;
+end;
+
+initialization
+   RegisterClass(TChatClient);
+
+finalization
+   UnRegisterClass(TChatClient);
+
+end.
