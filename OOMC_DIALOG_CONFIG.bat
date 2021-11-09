@@ -3,18 +3,18 @@
 pushd "%~dp0"
 
 rem ###########################################################################################
-rem # OOMC ���̾�α�(XE7) ȯ�漳�� �� ����ȭ�� ��������� �ڵ����� ver 3.0
+rem # OOMC 다이얼로그(XE7) 환경설정 및 바탕화면 단축아이콘 자동생성 ver 3.0
 rem # 
-rem # Author : Lee, Se-Ha
+rem # Author : Lee, Macgyver
 rem # Date   : 2017.12.13
-rem # Special Thanks to : ����ĭ (Ÿ��������_��ġ�ϱ�.BAT���� ������..)
+rem # Special Thanks to : 모히칸 (타병원접속_설치하기.BAT에서 영감을..)
 rem #
-rem # (ver 2.0) Application ����� �ý��� ������ �ʼ����� ��� �ڵ����� �� Console ���� ����.
-rem # (ver 3.0) �ý��� ������ Lib �ϰ����� ��� App.������ ���� Path ȯ�溯�� ���� ���� [M180718]
+rem # (ver 2.0) Application 실행시 시스템 폴더내 필수구동 모듈 자동복사 및 Console 종료 적용.
+rem # (ver 3.0) 시스템 폴더내 Lib 일괄복사 대신 App.실행경로 동적 Path 환경변수 설정 적용 [M180718]
 rem ###########################################################################################
 
 
-rem �� LIB �� ȯ��/�ý��� ���� Path ����
+rem 각 LIB 및 환경/시스템 폴더 Path 정의
 
 set OOMCLIB=C:\OOMC\LIB\
 set OOMCEXE=C:\OOMC\EXE\
@@ -28,19 +28,19 @@ set OS64SYSPATH=C:\WINDOWS\SYSWOW64\
 
 
 
-rem �� ������ �޾ƿ���
+rem 현 실행경로 받아오기
 set CURR_DIR=%cd%\
 
-echo �� ������ : %CURR_DIR%
+echo 현 실행경로 : %CURR_DIR%
 
 
 
-rem �����ο� ���� ���丮 ���� 
+rem 실행경로에 맞춰 디렉토리 변경 
 
 if %CURR_DIR%==%OOMCEXE% (
 	
 	echo.
-	echo [OOMCEXE] ��� ���� ����
+	echo [OOMCEXE] 경로 맵핑 시작
 	
 	set NOWEXEPATH=C:\OOMC\EXE\
 	
@@ -49,7 +49,7 @@ if %CURR_DIR%==%OOMCEXE% (
 	rem echo %OOMCEXE%	
 	rem echo %NOWEXEPATH%
 	
-	echo TMAX_D0.ENV ���� ���� ���� �� �űԻ���
+	echo TMAX_D0.ENV 기존 파일 삭제 및 신규생성
 	
 	C:
 	cd\
@@ -57,14 +57,14 @@ if %CURR_DIR%==%OOMCEXE% (
 
 	del TMAX_D0.ENV
 	
-	echo TMAX_D0.ENV App. �����ο� ���� �����
+	echo TMAX_D0.ENV App. 실행경로에 맞춰 재생성
 	
 	echo [01]>> TMAX_D0.ENV
 	echo TMAXDIR=C:\TMAX>> TMAX_D0.ENV
-	echo TMAX_HOST_ADDR=���߼���IP>> TMAX_D0.ENV
-	echo TMAX_HOST_PORT=���߼���PORT>> TMAX_D0.ENV
-	echo TMAX_BACKUP_ADDR=���߼���IP>> TMAX_D0.ENV
-	echo TMAX_BACKUP_PORT=���߼���PORT>> TMAX_D0.ENV
+	echo TMAX_HOST_ADDR=개발서버IP>> TMAX_D0.ENV
+	echo TMAX_HOST_PORT=개발서버PORT>> TMAX_D0.ENV
+	echo TMAX_BACKUP_ADDR=개발서버IP>> TMAX_D0.ENV
+	echo TMAX_BACKUP_PORT=개발서버PORT>> TMAX_D0.ENV
 	echo FDLFILE=C:\OOMC\ENV\HIS.FDL>> TMAX_D0.ENV
 	echo TMAX_CONNECT_TIMEOUT=^5>> TMAX_D0.ENV
 	echo --TMAX_TRACE=*:ulog:dye>> TMAX_D0.ENV
@@ -74,10 +74,10 @@ if %CURR_DIR%==%OOMCEXE% (
 	echo.>> TMAX_D0.ENV
 	echo [02]>> TMAX_D0.ENV
 	echo TMAXDIR=C:\TMAX>> TMAX_D0.ENV
-	echo TMAX_HOST_ADDR=���߼���IP>> TMAX_D0.ENV
-	echo TMAX_HOST_PORT=���߼���PORT>> TMAX_D0.ENV
-	echo TMAX_BACKUP_ADDR=���߼���IP>> TMAX_D0.ENV
-	echo TMAX_BACKUP_PORT=���߼���PORT>> TMAX_D0.ENV
+	echo TMAX_HOST_ADDR=개발서버IP>> TMAX_D0.ENV
+	echo TMAX_HOST_PORT=개발서버PORT>> TMAX_D0.ENV
+	echo TMAX_BACKUP_ADDR=개발서버IP>> TMAX_D0.ENV
+	echo TMAX_BACKUP_PORT=개발서버PORT>> TMAX_D0.ENV
 	echo FDLFILE=C:\OOMC\ENV\HIS.FDL>> TMAX_D0.ENV
 	echo TMAX_CONNECT_TIMEOUT=^5>> TMAX_D0.ENV
 	echo --TMAX_TRACE=*:ulog:dye>> TMAX_D0.ENV
@@ -87,8 +87,8 @@ if %CURR_DIR%==%OOMCEXE% (
 	echo.>> TMAX_D0.ENV
 	echo [DR]>> TMAX_D0.ENV
 	echo TMAXDIR=C:\TMAX>> TMAX_D0.ENV
-	echo TMAX_HOST_ADDR=���߼���IP>> TMAX_D0.ENV
-	echo TMAX_HOST_PORT=���߼���PORT>> TMAX_D0.ENV
+	echo TMAX_HOST_ADDR=개발서버IP>> TMAX_D0.ENV
+	echo TMAX_HOST_PORT=개발서버PORT>> TMAX_D0.ENV
 	echo FDLFILE=C:\OOMC\ENV\HIS.FDL>> TMAX_D0.ENV
 	echo TMAX_CONNECT_TIMEOUT=^5>> TMAX_D0.ENV
 	echo --TMAX_TRACE=*:ulog:dye>> TMAX_D0.ENV
@@ -101,7 +101,7 @@ if %CURR_DIR%==%OOMCEXE% (
 	cd\
 	cd %OOMCEXE%	
 	
-	echo [batch ������ OOMC �����Ϸ�]
+	echo [batch 실행경로 OOMC 설정완료]
 	echo.
 	
 	
@@ -111,7 +111,7 @@ if %CURR_DIR%==%OOMCEXE% (
 if %CURR_DIR%==%OOMCDEVEXE% (
 
 	echo.
-	echo [OOMCDEVEXE] ��� ���� ����
+	echo [OOMCDEVEXE] 경로 맵핑 시작
 
 	set NOWEXEPATH=C:\OOMC_DEV\EXE\
 	
@@ -119,7 +119,7 @@ if %CURR_DIR%==%OOMCDEVEXE% (
 	rem echo %OOMCDEVEXE%	
 	rem echo %NOWEXEPATH%
 
-	rem TMAX_D0.ENV ���� ���� ���� �� �űԻ���
+	rem TMAX_D0.ENV 기존 파일 삭제 및 신규생성
 	
 	C:
 	cd\
@@ -127,63 +127,63 @@ if %CURR_DIR%==%OOMCDEVEXE% (
 
 	del TMAX_D0.ENV
 	
-	rem TMAX_D0.ENV App. �����ο� ���� �����
+	rem TMAX_D0.ENV App. 실행경로에 맞춰 재생성
 	
 	echo [01]>> TMAX_D0.ENV
 	echo TMAXDIR=C:\TMAX>> TMAX_D0.ENV
-	echo TMAX_HOST_ADDR=���߼���IP>> TMAX_D0.ENV
-	echo TMAX_HOST_PORT=���߼���PORT>> TMAX_D0.ENV
-	echo TMAX_BACKUP_ADDR=���߼���IP>> MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_BACKUP_PORT=���߼���PORT>> MW�ַ�Ǹ�_D0.ENV
-	echo FDLFILE=C:\OOMC_DEV\ENV\HIS.FDL>> MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_CONNECT_TIMEOUT=^5>> MW�ַ�Ǹ�_D0.ENV
-	echo --MW�ַ�Ǹ�_TRACE=*:ulog:dye>> MW�ַ�Ǹ�_D0.ENV
-	echo --MW�ַ�Ǹ�_DEBUG=C:\DEV\MW�ַ�Ǹ�\ULOG\MW�ַ�Ǹ�.dbg>> MW�ַ�Ǹ�_D0.ENV
-	echo --ULOGPFX=C:\DEV\MW�ַ�Ǹ�\ULOG\MW�ַ�Ǹ�.ulog>> MW�ַ�Ǹ�_D0.ENV
+	echo TMAX_HOST_ADDR=개발서버IP>> TMAX_D0.ENV
+	echo TMAX_HOST_PORT=개발서버PORT>> TMAX_D0.ENV
+	echo TMAX_BACKUP_ADDR=개발서버IP>> MW솔루션명_D0.ENV
+	echo MW솔루션명_BACKUP_PORT=개발서버PORT>> MW솔루션명_D0.ENV
+	echo FDLFILE=C:\OOMC_DEV\ENV\HIS.FDL>> MW솔루션명_D0.ENV
+	echo MW솔루션명_CONNECT_TIMEOUT=^5>> MW솔루션명_D0.ENV
+	echo --MW솔루션명_TRACE=*:ulog:dye>> MW솔루션명_D0.ENV
+	echo --MW솔루션명_DEBUG=C:\DEV\MW솔루션명\ULOG\MW솔루션명.dbg>> MW솔루션명_D0.ENV
+	echo --ULOGPFX=C:\DEV\MW솔루션명\ULOG\MW솔루션명.ulog>> MW솔루션명_D0.ENV
 	
-	echo.>> MW�ַ�Ǹ�_D0.ENV
-	echo [02]>> MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�DIR=C:\MW�ַ�Ǹ�>> MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_HOST_ADDR=���߼���IP>> MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_HOST_PORT=���߼���PORT>> MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_BACKUP_ADDR=���߼���IP>> MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_BACKUP_PORT=���߼���PORT>> MW�ַ�Ǹ�_D0.ENV
-	echo FDLFILE=C:\OOMC_DEV\ENV\HIS.FDL>> MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_CONNECT_TIMEOUT=^5>> MW�ַ�Ǹ�_D0.ENV
-	echo --MW�ַ�Ǹ�_TRACE=*:ulog:dye>> MW�ַ�Ǹ�_D0.ENV
-	echo --MW�ַ�Ǹ�_DEBUG=C:\DEV\MW�ַ�Ǹ�\ULOG\MW�ַ�Ǹ�.dbg>> MW�ַ�Ǹ�_D0.ENV
-	echo --ULOGPFX=C:\DEV\MW�ַ�Ǹ�\ULOG\MW�ַ�Ǹ�.ulog>> MW�ַ�Ǹ�_D0.ENV
+	echo.>> MW솔루션명_D0.ENV
+	echo [02]>> MW솔루션명_D0.ENV
+	echo MW솔루션명DIR=C:\MW솔루션명>> MW솔루션명_D0.ENV
+	echo MW솔루션명_HOST_ADDR=개발서버IP>> MW솔루션명_D0.ENV
+	echo MW솔루션명_HOST_PORT=개발서버PORT>> MW솔루션명_D0.ENV
+	echo MW솔루션명_BACKUP_ADDR=개발서버IP>> MW솔루션명_D0.ENV
+	echo MW솔루션명_BACKUP_PORT=개발서버PORT>> MW솔루션명_D0.ENV
+	echo FDLFILE=C:\OOMC_DEV\ENV\HIS.FDL>> MW솔루션명_D0.ENV
+	echo MW솔루션명_CONNECT_TIMEOUT=^5>> MW솔루션명_D0.ENV
+	echo --MW솔루션명_TRACE=*:ulog:dye>> MW솔루션명_D0.ENV
+	echo --MW솔루션명_DEBUG=C:\DEV\MW솔루션명\ULOG\MW솔루션명.dbg>> MW솔루션명_D0.ENV
+	echo --ULOGPFX=C:\DEV\MW솔루션명\ULOG\MW솔루션명.ulog>> MW솔루션명_D0.ENV
 	
-	echo.>> MW�ַ�Ǹ�_D0.ENV
-	echo [DR]>> MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�DIR=C:\MW�ַ�Ǹ�>> MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_HOST_ADDR=���߼���IP>> MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_HOST_PORT=���߼���PORT>> MW�ַ�Ǹ�_D0.ENV
-	echo FDLFILE=C:\OOMC_DEV\ENV\HIS.FDL>> MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_CONNECT_TIMEOUT=^5>> MW�ַ�Ǹ�_D0.ENV
-	echo --MW�ַ�Ǹ�_TRACE=*:ulog:dye>> MW�ַ�Ǹ�_D0.ENV
-	echo --MW�ַ�Ǹ�_DEBUG=C:\DEV\MW�ַ�Ǹ�\ULOG\MW�ַ�Ǹ�.dbg>> MW�ַ�Ǹ�_D0.ENV
-	echo --ULOGPFX=C:\DEV\MW�ַ�Ǹ�\ULOG\MW�ַ�Ǹ�.ulog>> MW�ַ�Ǹ�_D0.ENV
-	echo.>> MW�ַ�Ǹ�_D0.ENV
+	echo.>> MW솔루션명_D0.ENV
+	echo [DR]>> MW솔루션명_D0.ENV
+	echo MW솔루션명DIR=C:\MW솔루션명>> MW솔루션명_D0.ENV
+	echo MW솔루션명_HOST_ADDR=개발서버IP>> MW솔루션명_D0.ENV
+	echo MW솔루션명_HOST_PORT=개발서버PORT>> MW솔루션명_D0.ENV
+	echo FDLFILE=C:\OOMC_DEV\ENV\HIS.FDL>> MW솔루션명_D0.ENV
+	echo MW솔루션명_CONNECT_TIMEOUT=^5>> MW솔루션명_D0.ENV
+	echo --MW솔루션명_TRACE=*:ulog:dye>> MW솔루션명_D0.ENV
+	echo --MW솔루션명_DEBUG=C:\DEV\MW솔루션명\ULOG\MW솔루션명.dbg>> MW솔루션명_D0.ENV
+	echo --ULOGPFX=C:\DEV\MW솔루션명\ULOG\MW솔루션명.ulog>> MW솔루션명_D0.ENV
+	echo.>> MW솔루션명_D0.ENV
 
 	echo.
 
 	cd\
 	cd %OOMCDEVEXE%		
 	
-	echo [batch ������ OOMC_DEV �����Ϸ�]
+	echo [batch 실행경로 OOMC_DEV 설정완료]
 	echo.
 	
 	
 	
 )
 
-rem �����ڱ���(�ý�������)���� Bat �����ؾ� �ϴ� ��� (���� ��� OOMC_DIALOG_XE7.exe�� C:\OOMC\EXE�� �����ؾ� ��!!��)
+rem 관리자권한(시스템폴더)으로 Bat 실행해야 하는 경우 (★이 경우 OOMC_DIALOG_XE7.exe는 C:\OOMC\EXE에 존재해야 함!!★)
 
 if %CURR_DIR%==%OS32SYSPATH% (
 
 	echo.
-	echo [OOMCEXE] ��� ���� ����
+	echo [OOMCEXE] 경로 맵핑 시작
 
 	set NOWEXEPATH=C:\OOMC\EXE\
 	
@@ -192,52 +192,52 @@ if %CURR_DIR%==%OS32SYSPATH% (
 	rem echo %OOMCEXE%	
 	rem echo %NOWEXEPATH%
 	
-	echo MW�ַ�Ǹ�_D0.ENV ���� ���� ���� �� �űԻ���
+	echo MW솔루션명_D0.ENV 기존 파일 삭제 및 신규생성
 
-	del %OOMCENV%MW�ַ�Ǹ�_D0.ENV
+	del %OOMCENV%MW솔루션명_D0.ENV
 	
-	echo MW�ַ�Ǹ�_D0.ENV App. �����ο� ���� �����
+	echo MW솔루션명_D0.ENV App. 실행경로에 맞춰 재생성
 	
-	echo [01]>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�DIR=C:\MW�ַ�Ǹ�>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_HOST_ADDR=���߼���IP>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_HOST_PORT=���߼���PORT>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_BACKUP_ADDR=���߼���IP>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_BACKUP_PORT=���߼���PORT>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo FDLFILE=C:\OOMC\ENV\HIS.FDL>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_CONNECT_TIMEOUT=^5>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo --MW�ַ�Ǹ�_TRACE=*:ulog:dye>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo --MW�ַ�Ǹ�_DEBUG=C:\DEV\MW�ַ�Ǹ�\ULOG\MW�ַ�Ǹ�.dbg>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo --ULOGPFX=C:\DEV\MW�ַ�Ǹ�\ULOG\MW�ַ�Ǹ�.ulog>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
+	echo [01]>> %OOMCENV%MW솔루션명_D0.ENV
+	echo MW솔루션명DIR=C:\MW솔루션명>> %OOMCENV%MW솔루션명_D0.ENV
+	echo MW솔루션명_HOST_ADDR=개발서버IP>> %OOMCENV%MW솔루션명_D0.ENV
+	echo MW솔루션명_HOST_PORT=개발서버PORT>> %OOMCENV%MW솔루션명_D0.ENV
+	echo MW솔루션명_BACKUP_ADDR=개발서버IP>> %OOMCENV%MW솔루션명_D0.ENV
+	echo MW솔루션명_BACKUP_PORT=개발서버PORT>> %OOMCENV%MW솔루션명_D0.ENV
+	echo FDLFILE=C:\OOMC\ENV\HIS.FDL>> %OOMCENV%MW솔루션명_D0.ENV
+	echo MW솔루션명_CONNECT_TIMEOUT=^5>> %OOMCENV%MW솔루션명_D0.ENV
+	echo --MW솔루션명_TRACE=*:ulog:dye>> %OOMCENV%MW솔루션명_D0.ENV
+	echo --MW솔루션명_DEBUG=C:\DEV\MW솔루션명\ULOG\MW솔루션명.dbg>> %OOMCENV%MW솔루션명_D0.ENV
+	echo --ULOGPFX=C:\DEV\MW솔루션명\ULOG\MW솔루션명.ulog>> %OOMCENV%MW솔루션명_D0.ENV
 	
-	echo.>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo [02]>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�DIR=C:\MW�ַ�Ǹ�>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_HOST_ADDR=���߼���IP>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_HOST_PORT=���߼���PORT>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_BACKUP_ADDR=���߼���IP>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_BACKUP_PORT=���߼���PORT>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo FDLFILE=C:\OOMC\ENV\HIS.FDL>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_CONNECT_TIMEOUT=^5>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo --MW�ַ�Ǹ�_TRACE=*:ulog:dye>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo --MW�ַ�Ǹ�_DEBUG=C:\DEV\MW�ַ�Ǹ�\ULOG\MW�ַ�Ǹ�.dbg>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo --ULOGPFX=C:\DEV\MW�ַ�Ǹ�\ULOG\MW�ַ�Ǹ�.ulog>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
+	echo.>> %OOMCENV%MW솔루션명_D0.ENV
+	echo [02]>> %OOMCENV%MW솔루션명_D0.ENV
+	echo MW솔루션명DIR=C:\MW솔루션명>> %OOMCENV%MW솔루션명_D0.ENV
+	echo MW솔루션명_HOST_ADDR=개발서버IP>> %OOMCENV%MW솔루션명_D0.ENV
+	echo MW솔루션명_HOST_PORT=개발서버PORT>> %OOMCENV%MW솔루션명_D0.ENV
+	echo MW솔루션명_BACKUP_ADDR=개발서버IP>> %OOMCENV%MW솔루션명_D0.ENV
+	echo MW솔루션명_BACKUP_PORT=개발서버PORT>> %OOMCENV%MW솔루션명_D0.ENV
+	echo FDLFILE=C:\OOMC\ENV\HIS.FDL>> %OOMCENV%MW솔루션명_D0.ENV
+	echo MW솔루션명_CONNECT_TIMEOUT=^5>> %OOMCENV%MW솔루션명_D0.ENV
+	echo --MW솔루션명_TRACE=*:ulog:dye>> %OOMCENV%MW솔루션명_D0.ENV
+	echo --MW솔루션명_DEBUG=C:\DEV\MW솔루션명\ULOG\MW솔루션명.dbg>> %OOMCENV%MW솔루션명_D0.ENV
+	echo --ULOGPFX=C:\DEV\MW솔루션명\ULOG\MW솔루션명.ulog>> %OOMCENV%MW솔루션명_D0.ENV
 	
-	echo.>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo [DR]>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�DIR=C:\MW�ַ�Ǹ�>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_HOST_ADDR=���߼���IP>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_HOST_PORT=���߼���PORT>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo FDLFILE=C:\OOMC\ENV\HIS.FDL>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo MW�ַ�Ǹ�_CONNECT_TIMEOUT=^5>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo --MW�ַ�Ǹ�_TRACE=*:ulog:dye>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo --MW�ַ�Ǹ�_DEBUG=C:\DEV\MW�ַ�Ǹ�\ULOG\MW�ַ�Ǹ�.dbg>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo --ULOGPFX=C:\DEV\MW�ַ�Ǹ�\ULOG\MW�ַ�Ǹ�.ulog>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
-	echo.>> %OOMCENV%MW�ַ�Ǹ�_D0.ENV
+	echo.>> %OOMCENV%MW솔루션명_D0.ENV
+	echo [DR]>> %OOMCENV%MW솔루션명_D0.ENV
+	echo MW솔루션명DIR=C:\MW솔루션명>> %OOMCENV%MW솔루션명_D0.ENV
+	echo MW솔루션명_HOST_ADDR=개발서버IP>> %OOMCENV%MW솔루션명_D0.ENV
+	echo MW솔루션명_HOST_PORT=개발서버PORT>> %OOMCENV%MW솔루션명_D0.ENV
+	echo FDLFILE=C:\OOMC\ENV\HIS.FDL>> %OOMCENV%MW솔루션명_D0.ENV
+	echo MW솔루션명_CONNECT_TIMEOUT=^5>> %OOMCENV%MW솔루션명_D0.ENV
+	echo --MW솔루션명_TRACE=*:ulog:dye>> %OOMCENV%MW솔루션명_D0.ENV
+	echo --MW솔루션명_DEBUG=C:\DEV\MW솔루션명\ULOG\MW솔루션명.dbg>> %OOMCENV%MW솔루션명_D0.ENV
+	echo --ULOGPFX=C:\DEV\MW솔루션명\ULOG\MW솔루션명.ulog>> %OOMCENV%MW솔루션명_D0.ENV
+	echo.>> %OOMCENV%MW솔루션명_D0.ENV
 	
 	echo.	
 	
-	echo [batch ������ OOMC �����Ϸ�]
+	echo [batch 실행경로 OOMC 설정완료]
 	echo.
 	
 )
@@ -246,7 +246,7 @@ if %CURR_DIR%==%OS32SYSPATH% (
 
 
 
-rem OS�� 32��Ʈ���� 64��Ʈ���� Ȯ���� Root �������� Path ���� Console (KDialConfigConsole.exe) ȣ�� �� �ٷΰ��� ������ ����
+rem OS가 32비트인지 64비트인지 확인후 Root 실행경로의 Path 설정 Console (KDialConfigConsole.exe) 호출 및 바로가기 아이콘 생성
 
 reg Query "HKLM\Hardware\Description\System\CentralProcessor\0" | find /i "x86" > NUL && set OS=32BIT || set OS=64BIT
 
@@ -258,11 +258,11 @@ if %OS%==32BIT (
 	
 	echo.
 	
-	rem 32��Ʈ OS ����ȭ�鿡 �ٷΰ��� ICON �ڵ����� �ϱ�
+	rem 32비트 OS 바탕화면에 바로가기 ICON 자동생성 하기
 
-	%OS32SYSPATH%WindowsPowerShell\v1.0\powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%userprofile%\DeskTop\OOMC ���̾�α�.lnk');$s.TargetPath='%NOWEXEPATH%KDialConfigConsole.exe';$s.Save()"
+	%OS32SYSPATH%WindowsPowerShell\v1.0\powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%userprofile%\DeskTop\OOMC 다이얼로그.lnk');$s.TargetPath='%NOWEXEPATH%KDialConfigConsole.exe';$s.Save()"
 
-	echo [����ȭ�鿡 OOMC ���̾�α� ����Ű �����Ϸ�]
+	echo [바탕화면에 OOMC 다이얼로그 단축키 생성완료]
 	echo.	
 	
 )
@@ -275,30 +275,30 @@ if %OS%==64BIT (
 	
 	echo.
 	
-	rem 64��Ʈ OS ����ȭ�鿡 �ٷΰ��� ICON �ڵ����� �ϱ�
+	rem 64비트 OS 바탕화면에 바로가기 ICON 자동생성 하기
 
-	%OS64SYSPATH%WindowsPowerShell\v1.0\powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%userprofile%\DeskTop\OOMC ���̾�α�.lnk');$s.TargetPath='%NOWEXEPATH%KDialConfigConsole.exe';$s.Save()"
+	%OS64SYSPATH%WindowsPowerShell\v1.0\powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%userprofile%\DeskTop\OOMC 다이얼로그.lnk');$s.TargetPath='%NOWEXEPATH%KDialConfigConsole.exe';$s.Save()"
 
-	echo [����ȭ�鿡 OOMC ���̾�α� ����Ű �����Ϸ�]
+	echo [바탕화면에 OOMC 다이얼로그 단축키 생성완료]
 	echo.		
 )
 
 
 
 if exist %NOWEXEPATH%OOMC_DIALOG_XE7.exe (
-	echo �ڡ� ��� ������ �Ϸ�Ǿ�����, ����ȭ�鿡 ������� [OOMC ���̾�α�] ������ :-p
+	echo ★★ 모든 설정이 완료되었으니, 바탕화면에 만들어진 [OOMC 다이얼로그] 고고싱 :-p
 	echo. 
 ) else (
 	if %CURR_DIR%==%OOMCEXE% (
-		echo �ڡ� C:\OOMC\EXE �����ȿ� [OOMC_DIALOG_XE7.exe] ���������� �����ϴ�. ���������� �ش� ����� ������ �����Ͻ� �� ����ϼ��� �ڡ�	
+		echo ★★ C:\OOMC\EXE 폴더안에 [OOMC_DIALOG_XE7.exe] 실행파일이 없습니다. 실행파일을 해당 경로의 폴더에 복사하신 후 사용하세요 ★★	
 	)
 	
 	if %CURR_DIR%==%OOMCDEVEXE% (
-		echo �ڡ� C:\OOMC_DEV\EXE �����ȿ� [OOMC_DIALOG_XE7.exe] ���������� �����ϴ�. ���������� �ش� ����� ������ �����Ͻ� �� ����ϼ��� �ڡ�
+		echo ★★ C:\OOMC_DEV\EXE 폴더안에 [OOMC_DIALOG_XE7.exe] 실행파일이 없습니다. 실행파일을 해당 경로의 폴더에 복사하신 후 사용하세요 ★★
 	)
 	
 	if %CURR_DIR%==%OS32SYSPATH% (
-		echo �ڡ� C:\OOMC\EXE �����ȿ� [OOMC_DIALOG_XE7.exe] ���������� �����ϴ�. ���������� �ش� ����� ������ �����Ͻ� �� ����ϼ��� �ڡ�	
+		echo ★★ C:\OOMC\EXE 폴더안에 [OOMC_DIALOG_XE7.exe] 실행파일이 없습니다. 실행파일을 해당 경로의 폴더에 복사하신 후 사용하세요 ★★	
 	)	
 )
 
